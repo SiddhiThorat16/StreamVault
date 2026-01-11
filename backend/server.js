@@ -18,13 +18,13 @@ app.use(helmet());
 app.use(cors({ origin: 'http://localhost:3000' })); // Frontend later
 app.use(express.json());
 
-// ADD THESE AUTH ROUTES (Day 2)
 app.use('/api/auth', require('./routes/auth'));
 
 app.use('/api/files', require('./routes/files'));
 
+app.use('/api/folders', require('./routes/folders'));
 
-// Protected test route (Day 2)
+
 app.get('/api/protected', auth, (req, res) => {
   res.json({ message: 'Protected route accessed', user: req.user });
 });

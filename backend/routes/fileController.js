@@ -92,4 +92,106 @@ const getFile = async (req, res) => {
   }
 };
 
-module.exports = { initUpload, uploadFile, getFile };
+// DAY 4 ADDITIONS - File CRUD
+const renameFile = async (req, res) => {
+  try {
+    const file = await File.findOne({ 
+      _id: req.params.id, 
+      owner_id: req.user._id,
+      is_deleted: false 
+    });
+    
+    if (!file) {
+      return res.status(404).json({ error: { code: 'FILE_NOT_FOUND' } });
+    }
+    
+    file.name = req.body.name;
+    file.updated_at = new Date();
+    await file.save();
+    
+    res.json({ id: file._id, name: file.name });
+  } catch (error) {
+    res.status(400).json({ error: { code: 'FILE_RENAME_FAILED', message: error.message } });
+  }
+};
+
+const moveFile = async (req, res) => {
+  try {
+    const { folderId } = req.body;
+    const file = await File.findOne({ 
+      _id: req.params.id, 
+      owner_id: req.user._id 
+    });
+    
+    if (!file) {
+      return res.status(404).json({ error: { code: 'FILE_NOT_FOUND' } });
+    }
+    
+    if (folderId) {
+      const folder = await Folder.findOne({ 
+        _id: folderId, 
+        owner_id: req.user._id,
+        is_deleted: false 
+      });
+      if (!folder) {
+        return res.status(404).json({ error: { code: 'FOLDER_NOT_FOUND' } });
+      }
+    }
+    
+    file.folder_id = folderId || null;
+    file.updated_at = new Date();
+    await file.save();
+    
+    res.json({ id: file._id, folderId: file.folder_id });
+  } catch (error) {
+    res.status(400).json({ error: { code: 'FILE_MOVE_FAILED', message: error.message } });
+  }
+};
+
+const deleteFile = async (req, res) => {
+  try {
+    const file = await File.findOne({ 
+      _id: req.params.id, 
+      owner_id: req.user._id 
+    });
+    
+    if (!file) {
+      return res.status(404).json({ error: { code: 'FILE_NOT_FOUND' } });
+    }
+    
+    file.is_deleted = true;
+    await file.save();
+    res.json({ message: 'File moved to trash' });
+  } catch (error) {
+    res.status(400).json({ error: { code: 'FILE_DELETE_FAILED', message: error.message } });
+  }
+};
+
+const getTrash = async (req, res) => {
+  try {
+    const files = await File.find({
+      owner_id: req.user._id,
+      is_deleted: true
+    }).sort({ created_at: -1 });
+    
+    res.json({
+      files: files.map(f => ({ 
+        id: f._id, 
+        name: f.name, 
+        deletedAt: f.updated_at || f.created_at 
+      }))
+    });
+  } catch (error) {
+    res.status(400).json({ error: { code: 'TRASH_FETCH_FAILED', message: error.message } });
+  }
+};
+
+module.exports = { 
+  initUpload, 
+  uploadFile, 
+  getFile, 
+  renameFile, 
+  moveFile, 
+  deleteFile,
+  getTrash
+};
