@@ -5,7 +5,8 @@ const express = require('express');
 const connectDB = require('./config/db');
 const cors = require('cors');
 const helmet = require('helmet');
-const auth = require('./middleware/auth');  // ADD THIS
+const auth = require('./middleware/auth'); 
+
 
 const app = express();
 
@@ -20,6 +21,9 @@ app.use(express.json());
 // ADD THESE AUTH ROUTES (Day 2)
 app.use('/api/auth', require('./routes/auth'));
 
+app.use('/api/files', require('./routes/files'));
+
+
 // Protected test route (Day 2)
 app.get('/api/protected', auth, (req, res) => {
   res.json({ message: 'Protected route accessed', user: req.user });
@@ -29,6 +33,7 @@ app.get('/api/protected', auth, (req, res) => {
 app.get('/', (req, res) => {
   res.json({ message: 'StreamVault Backend API - Day 1 Ready!' });
 });
+
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
