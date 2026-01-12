@@ -3,14 +3,24 @@
 const express = require('express');
 const auth = require('../middleware/auth');
 const { canAccessResource } = require('../middleware/permissions');
-const { initUpload, uploadFile, getFile, renameFile, moveFile, deleteFile, getTrash } = require('./fileController');
+const { 
+  initUpload, 
+  uploadFile, 
+  getFile, 
+  renameFile, 
+  moveFile, 
+  deleteFile, 
+  getTrash,
+  listFiles
+} = require('./fileController');
 const router = express.Router();
+
+router.get('/', auth, listFiles);
 
 router.post('/init', auth, initUpload);
 router.post('/upload', auth, uploadFile);
 router.get('/trash', auth, getTrash);
 
-// Protected routes with permissions middleware
 router.get('/:id', auth, canAccessResource, getFile);
 router.patch('/:id/rename', auth, canAccessResource, renameFile);
 router.patch('/:id/move', auth, canAccessResource, moveFile);

@@ -200,6 +200,42 @@ const getTrash = async (req, res) => {
   }
 };
 
+const listFiles = async (req, res) => {
+  try {
+    const { folderId, page = 1, limit = 50 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    const query = {
+      owner_id: req.user._id,
+      is_deleted: false
+    };
+    if (folderId) query.folder_id = folderId;
+
+    // ✅ PAGINATED + INDEXED QUERY
+    const files = await File.find(query)
+      .populate('folder_id', 'name')
+      .sort({ created_at: -1 })
+      .limit(parseInt(limit))
+      .skip(skip);
+
+    const total = await File.countDocuments(query);
+
+    res.json({
+      files,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+        hasNext: parseInt(page) * parseInt(limit) < total,
+        hasPrev: parseInt(page) > 1
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ error: { code: 'LIST_FILES_FAILED', message: error.message } });
+  }
+};
+
 module.exports = { 
   initUpload, 
   uploadFile, 
@@ -207,5 +243,6 @@ module.exports = {
   renameFile, 
   moveFile, 
   deleteFile,
-  getTrash
+  getTrash,
+  listFiles
 };
