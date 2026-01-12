@@ -57,8 +57,9 @@ const uploadFile = [
 
       // Update file with Cloudinary URL
       file.storage_key = result.secure_url;
+      file.cloudinary_public_id = result.public_id;  // ✅ ADD THIS
       file.checksum = result.etag;
-      file.save();
+      await file.save();  // ✅ await instead of fire-and-forget
 
       res.json({ 
         fileId: file._id,
@@ -79,18 +80,31 @@ const getFile = async (req, res) => {
       return res.status(404).json({ error: { code: 'FILE_NOT_FOUND' } });
     }
     
+    // ✅ SIGNED URL (1hr expiry)
+    let signedUrl = file.storage_key;
+    if (file.cloudinary_public_id) {
+      signedUrl = cloudinary.utils.private_download_url(
+        file.cloudinary_public_id,
+        { 
+          resource_type: 'auto',
+          expires_at: Math.floor(Date.now() / 1000) + 3600  // 1hr
+        }
+      );
+    }
+    
     res.json({
       id: file._id,
       name: file.name,
       size_bytes: file.size_bytes,
       mime_type: file.mime_type,
-      url: file.storage_key,
+      url: signedUrl,  // ✅ Signed URL
       created_at: file.created_at
     });
   } catch (error) {
     res.status(400).json({ error: { code: 'FILE_FETCH_FAILED', message: error.message } });
   }
 };
+
 
 // DAY 4 ADDITIONS - File CRUD
 const renameFile = async (req, res) => {

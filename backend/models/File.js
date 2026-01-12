@@ -7,6 +7,7 @@ const fileSchema = new mongoose.Schema({
   mime_type: String,
   size_bytes: Number,
   storage_key: { type: String, unique: true, sparse: true },
+  cloudinary_public_id: String, // ✅ ADDED: For signed URLs
   owner_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   folder_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Folder', index: true },
   version_id: { type: mongoose.Schema.Types.ObjectId, ref: 'FileVersion' },

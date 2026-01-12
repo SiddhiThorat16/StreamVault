@@ -28,10 +28,14 @@ const shareSchema = new mongoose.Schema({
     ref: 'User', 
     required: true 
   },
+  share_token: { 
+    type: String, 
+    unique: true, 
+    sparse: true 
+  }, // ✅ ADDED: Public share links
   created_at: { type: Date, default: Date.now }
 });
 
-// Unique constraint matching PostgreSQL spec
 shareSchema.index({ 
   resource_type: 1, 
   resource_id: 1, 

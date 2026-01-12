@@ -24,6 +24,8 @@ app.use('/api/files', require('./routes/files'));
 
 app.use('/api/folders', require('./routes/folders'));
 
+app.use('/api/shares', require('./routes/shares'));
+
 
 app.get('/api/protected', auth, (req, res) => {
   res.json({ message: 'Protected route accessed', user: req.user });
