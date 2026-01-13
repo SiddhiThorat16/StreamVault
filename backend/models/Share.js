@@ -32,7 +32,7 @@ const shareSchema = new mongoose.Schema({
     type: String, 
     unique: true, 
     sparse: true 
-  }, // ✅ ADDED: Public share links
+  }, 
   created_at: { type: Date, default: Date.now }
 });
 
