@@ -1,0 +1,25 @@
+# Existing (keep all)
+logs
+*.log
+node_modules
+dist
+dist-ssr
+*.local
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+build/
+.vite/
+coverage/
+.cache/
+*.log
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
