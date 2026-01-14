@@ -17,7 +17,7 @@ const Signup = () => {
       const res = await axios.post('http://localhost:8080/api/auth/register', formData);
       localStorage.setItem('token', res.data.token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
-      navigate('/dashboard');
+      navigate('/*');
     } catch (error) {
       console.error('Signup failed:', error);
     } finally {

@@ -17,7 +17,7 @@ const Login = () => {
       const res = await axios.post('http://localhost:8080/api/auth/login', formData);
       localStorage.setItem('token', res.data.token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${res.data.token}`;
-      navigate('/dashboard');
+      navigate('/*');
     } catch (error) {
       console.error('Login failed:', error);
     } finally {
