@@ -40,37 +40,50 @@ const initUpload = async (req, res) => {
 };
 
 const uploadFile = [
-  upload.single('file'),
+  upload.array('files'),  // ✅ Changed: array('files') for multiple files
   async (req, res) => {
     try {
-      const file = await File.findById(req.body.fileId).populate('owner_id');
+      const files = req.files;  // ✅ Multiple files
+      const folderId = req.body.folderId || null;
       
-      if (!file || file.owner_id._id.toString() !== req.user._id.toString()) {
-        return res.status(403).json({ error: { code: 'FILE_NOT_FOUND' } });
+      const uploadedFiles = [];
+      
+      for (let file of files) {
+        // Init file record first
+        const fileRecord = new File({
+          name: file.originalname,
+          owner_id: req.user._id,
+          folder_id: folderId,
+          mime_type: file.mimetype,
+          size_bytes: file.size
+        });
+        await fileRecord.save();
+        
+        // Upload to Cloudinary
+        const result = await cloudinary.uploader.upload(file.path, {
+          resource_type: 'auto',
+          folder: `streamvault/${req.user._id}`
+        });
+        
+        // Update with Cloudinary URL
+        fileRecord.storage_key = result.secure_url;
+        fileRecord.cloudinary_public_id = result.public_id;
+        await fileRecord.save();
+        
+        uploadedFiles.push(fileRecord);
       }
-
-      // Upload to Cloudinary
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        resource_type: 'auto',
-        folder: `streamvault/${req.user._id}`
-      });
-
-      // Update file with Cloudinary URL
-      file.storage_key = result.secure_url;
-      file.cloudinary_public_id = result.public_id;  // ✅ ADD THIS
-      file.checksum = result.etag;
-      await file.save();  // ✅ await instead of fire-and-forget
-
+      
       res.json({ 
-        fileId: file._id,
-        url: result.secure_url,
-        message: 'File uploaded successfully'
+        success: true, 
+        files: uploadedFiles 
       });
     } catch (error) {
-      res.status(400).json({ error: { code: 'UPLOAD_FAILED', message: error.message } });
+      console.error('Upload error:', error);
+      res.status(500).json({ error: error.message });
     }
   }
 ];
+
 
 const getFile = async (req, res) => {
   try {

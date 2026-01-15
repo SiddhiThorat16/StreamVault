@@ -8,6 +8,7 @@ const helmet = require('helmet');
 const auth = require('./middleware/auth'); 
 
 
+
 const app = express();
 
 // Connect DB
@@ -31,6 +32,10 @@ app.use('/api/folders', require('./routes/folders'));
 app.use('/api/shares', require('./routes/shares'));
 
 app.use('/api/search', auth, require('./routes/search'));
+
+// app.use('/api/file', require('./routes/fileRoutes'));
+
+app.use('/uploads', express.static('uploads'));
 
 
 app.get('/api/protected', auth, (req, res) => {

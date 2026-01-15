@@ -7,8 +7,12 @@ import {
   ChevronLeft, ChevronRight, Folder, File, Image, FileText, Video, Upload, Search, 
   Trash2, MoreHorizontal, LogOut, Home, Loader2 
 } from 'lucide-react';
+import UploadDropzone from '../components/Upload/UploadDropzone';
 
 const FileExplorer = () => {
+  // ✅ NEW: controls upload modal
+  const [showUpload, setShowUpload] = useState(false);
+
   const [currentPath, setCurrentPath] = useState([]);
   const [files, setFiles] = useState([]);
   const [folders, setFolders] = useState([]);
@@ -55,6 +59,9 @@ const FileExplorer = () => {
     delete axios.defaults.headers.common['Authorization'];
     navigate('/login');
   };
+
+  // ✅ NEW: current folder id for uploads
+  const currentFolderId = currentPath[currentPath.length - 1]?._id || '';
 
   // ✅ ENHANCED FILE ICONS BY TYPE
   const getFileIcon = (mimeType) => {
@@ -162,7 +169,11 @@ const FileExplorer = () => {
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              <button className="group flex items-center space-x-2.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white px-8 py-4 rounded-3xl font-semibold shadow-xl hover:shadow-2xl hover:scale-105 hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 text-lg">
+              {/* ✅ Upload button now opens dropzone */}
+              <button 
+                onClick={() => setShowUpload(true)}
+                className="group flex items-center space-x-2.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white px-8 py-4 rounded-3xl font-semibold shadow-xl hover:shadow-2xl hover:scale-105 hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 text-lg"
+              >
                 <Upload className="h-5 w-5 group-hover:rotate-12 transition-transform" />
                 <span>Upload</span>
               </button>
@@ -199,7 +210,10 @@ const FileExplorer = () => {
               Start organizing your files by uploading documents, photos, or creating new folders.
             </p>
             <div className="flex flex-col lg:flex-row gap-4 justify-center items-center">
-              <button className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-10 py-5 rounded-3xl font-bold text-lg shadow-2xl hover:shadow-3xl hover:scale-105 transition-all duration-300">
+              <button 
+                onClick={() => setShowUpload(true)}
+                className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-10 py-5 rounded-3xl font-bold text-lg shadow-2xl hover:shadow-3xl hover:scale-105 transition-all duration-300"
+              >
                 📁 Upload Files
               </button>
               <button className="border-2 border-dashed border-gray-300 text-gray-700 px-10 py-5 rounded-3xl font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all shadow-lg">
@@ -223,6 +237,15 @@ const FileExplorer = () => {
           </div>
         )}
       </main>
+
+      {/* ✅ Upload modal hooked here */}
+      {showUpload && (
+        <UploadDropzone
+          folderId={currentFolderId}
+          onClose={() => setShowUpload(false)}
+          onUploaded={fetchCurrentFolder}
+        />
+      )}
     </div>
   );
 };
