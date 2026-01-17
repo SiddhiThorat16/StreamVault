@@ -199,19 +199,64 @@ const getTrash = async (req, res) => {
     const files = await File.find({
       owner_id: req.user._id,
       is_deleted: true
-    }).sort({ created_at: -1 });
+    }).sort({ updated_at: -1 }).select('name size_bytes mime_type updated_at _id'); // ✅ Full data
     
     res.json({
       files: files.map(f => ({ 
         id: f._id, 
         name: f.name, 
-        deletedAt: f.updated_at || f.created_at 
+        size_bytes: f.size_bytes,
+        mime_type: f.mime_type,
+        deletedAt: f.updated_at 
       }))
     });
   } catch (error) {
     res.status(400).json({ error: { code: 'TRASH_FETCH_FAILED', message: error.message } });
   }
 };
+
+const restoreFile = async (req, res) => {
+  try {
+    const file = await File.findOne({ 
+      _id: req.params.id, 
+      owner_id: req.user._id,
+      is_deleted: true 
+    });
+    
+    if (!file) return res.status(404).json({ error: { code: 'FILE_NOT_FOUND' } });
+    
+    file.is_deleted = false;
+    file.deleted_at = null;
+    await file.save();
+    
+    res.json({ message: 'File restored successfully' });
+  } catch (error) {
+    res.status(400).json({ error: { code: 'RESTORE_FAILED', message: error.message } });
+  }
+};
+
+const permanentDeleteFile = async (req, res) => {
+  try {
+    const file = await File.findOne({ 
+      _id: req.params.id, 
+      owner_id: req.user._id 
+    });
+    
+    if (!file) return res.status(404).json({ error: { code: 'FILE_NOT_FOUND' } });
+    
+    // Delete from Cloudinary too
+    if (file.storage_key) {
+      const publicId = file.storage_key.split('/').pop().split('.')[0];
+      await cloudinary.uploader.destroy(publicId);
+    }
+    
+    await File.deleteOne({ _id: file._id });
+    res.json({ message: 'File permanently deleted' });
+  } catch (error) {
+    res.status(400).json({ error: { code: 'PERMANENT_DELETE_FAILED', message: error.message } });
+  }
+};
+
 
 const listFiles = async (req, res) => {
   try {
@@ -259,3 +304,89 @@ module.exports = {
   getTrash,
   listFiles
 };
+
+
+
+
+
+
+
+
+/*
+// ✅ 1. Export getTrash
+const getTrash = async (req, res) => {
+  try {
+    const files = await File.find({
+      owner_id: req.user._id,
+      is_deleted: true
+    }).sort({ updated_at: -1 }).select('name size_bytes mime_type updated_at _id'); // ✅ Full data
+    
+    res.json({
+      files: files.map(f => ({ 
+        id: f._id, 
+        name: f.name, 
+        size_bytes: f.size_bytes,
+        mime_type: f.mime_type,
+        deletedAt: f.updated_at 
+      }))
+    });
+  } catch (error) {
+    res.status(400).json({ error: { code: 'TRASH_FETCH_FAILED', message: error.message } });
+  }
+};
+
+// ✅ 2. ADD restoreFile
+const restoreFile = async (req, res) => {
+  try {
+    const file = await File.findOne({ 
+      _id: req.params.id, 
+      owner_id: req.user._id,
+      is_deleted: true 
+    });
+    
+    if (!file) return res.status(404).json({ error: { code: 'FILE_NOT_FOUND' } });
+    
+    file.is_deleted = false;
+    file.deleted_at = null;
+    await file.save();
+    
+    res.json({ message: 'File restored successfully' });
+  } catch (error) {
+    res.status(400).json({ error: { code: 'RESTORE_FAILED', message: error.message } });
+  }
+};
+
+// ✅ 3. ADD permanentDeleteFile  
+const permanentDeleteFile = async (req, res) => {
+  try {
+    const file = await File.findOne({ 
+      _id: req.params.id, 
+      owner_id: req.user._id 
+    });
+    
+    if (!file) return res.status(404).json({ error: { code: 'FILE_NOT_FOUND' } });
+    
+    // Delete from Cloudinary too
+    if (file.storage_key) {
+      const publicId = file.storage_key.split('/').pop().split('.')[0];
+      await cloudinary.uploader.destroy(publicId);
+    }
+    
+    await File.deleteOne({ _id: file._id });
+    res.json({ message: 'File permanently deleted' });
+  } catch (error) {
+    res.status(400).json({ error: { code: 'PERMANENT_DELETE_FAILED', message: error.message } });
+  }
+};
+
+// ✅ UPDATE ROUTES file
+router.get('/trash', auth, getTrash);           // ✅ Already exists
+router.patch('/:id/restore', auth, restoreFile); // ✅ NEW
+router.delete('/:id/permanent', auth, permanentDeleteFile); // ✅ NEW
+
+// ✅ EXPORT ALL
+module.exports = { 
+  initUpload, uploadFile, getFile, renameFile, moveFile, deleteFile,
+  getTrash, restoreFile, permanentDeleteFile  // ✅ Added
+};
+*/

@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
   ChevronLeft, ChevronRight, Folder, File, Image, FileText, Video, Upload, Search, 
-  Trash2, MoreHorizontal, LogOut, Home, Loader2, Share2, Download, ArrowUpDown 
+  Trash2, MoreHorizontal, LogOut, Home, Loader2, Share2, Download, ArrowUpDown, X 
 } from 'lucide-react';
 import UploadDropzone from '../components/Upload/UploadDropzone';
 import ShareModal from '../components/Share/ShareModal';
@@ -21,14 +21,27 @@ const FileExplorer = () => {
   const [files, setFiles] = useState([]);
   const [folders, setFolders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchMode, setSearchMode] = useState(false); // ✅ Toggle between folder/local search
+  const [searchMode, setSearchMode] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState({ files: [], folders: [], total: 0 });
-  const [sortBy, setSortBy] = useState('name'); // name, size, date
-  const [sortOrder, setSortOrder] = useState('asc'); // asc, desc
+  const [sortBy, setSortBy] = useState('name');
+  const [sortOrder, setSortOrder] = useState('asc');
   const [searchLoading, setSearchLoading] = useState(false);
 
   const navigate = useNavigate();
+
+  // ✅ DEBOUNCE UTILITY
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
 
   // ✅ DEBOUNCED SEARCH (300ms)
   const debouncedSearch = useCallback(
@@ -138,8 +151,6 @@ const FileExplorer = () => {
       [...sortedFolders, ...sortedFiles]
   , [searchMode, searchResults, sortedFolders, sortedFiles]);
 
-  // ... (keep existing: openShareModal, navigateToFolder, goBack, handleLogout, getFileIcon)
-
   const openShareModal = (file) => {
     setSelectedFile(file);
     setShowShareModal(true);
@@ -147,7 +158,7 @@ const FileExplorer = () => {
 
   const navigateToFolder = (folder) => {
     setCurrentPath([...currentPath, folder]);
-    setSearchMode(false); // Exit search when navigating
+    setSearchMode(false);
     setSearchTerm('');
   };
 
@@ -171,8 +182,6 @@ const FileExplorer = () => {
     return <File className="h-7 w-7 text-white drop-shadow-md" />;
   };
 
-  // ... (keep Breadcrumbs & FileItem unchanged)
-
   const Breadcrumbs = () => (
     <div className="flex items-center bg-white/90 backdrop-blur-sm border-b px-6 py-4 shadow-sm">
       <button onClick={() => setCurrentPath([])} className="p-2 hover:bg-gray-100 rounded-xl transition-all group">
@@ -193,90 +202,88 @@ const FileExplorer = () => {
     </div>
   );
 
-  // FileItem (unchanged from Day 11)
-const FileItem = ({ item, onClick }) => {
-  const [showActions, setShowActions] = useState(false);
+  const FileItem = ({ item, onClick }) => {
+    const [showActions, setShowActions] = useState(false);
 
-  const handleActionClick = (e, action) => {
-    e.stopPropagation();
-    if (action === 'share') {
-      openShareModal(item);
-    }
+    const handleActionClick = (e, action) => {
+      e.stopPropagation();
+      if (action === 'share') {
+        openShareModal(item);
+      }
+    };
+
+    return (
+      <div 
+        className="group bg-white/80 backdrop-blur-sm rounded-3xl p-8 hover:shadow-2xl hover:-translate-y-2 hover:border-indigo-300 hover:bg-gradient-to-br hover:from-indigo-50/80 hover:to-purple-50/80 transition-all duration-500 border border-gray-100/50 shadow-lg h-40 flex flex-col justify-between cursor-pointer overflow-hidden relative"
+        onClick={onClick}
+        onMouseEnter={() => setShowActions(true)}
+        onMouseLeave={() => setShowActions(false)}
+      >
+        <div className="flex items-start space-x-4 h-full">
+          <div className="w-16 h-16 flex-shrink-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 hover:shadow-2xl">
+            {item.is_folder ? (
+              <Folder className="h-8 w-8 text-white drop-shadow-lg" />
+            ) : (
+              getFileIcon(item.mime_type)
+            )}
+          </div>
+          <div className="flex-1 min-w-0 flex flex-col justify-between py-1 flex-grow">
+            <div className="space-y-1">
+              <h3 className="font-bold text-xl leading-tight text-gray-900/95 truncate group-hover:text-indigo-700 transition-all line-clamp-2">
+                {item.name}
+              </h3>
+              <p className="text-sm font-medium text-gray-600 group-hover:text-gray-700 transition-colors">
+                {item.is_folder 
+                  ? `${item.children_count || 0} items • Folder` 
+                  : `${item.mime_type?.split('/')[1]?.toUpperCase() || 'FILE'}`
+                }
+              </p>
+            </div>
+            {!item.is_folder && (
+              <div className="flex items-center justify-between mt-auto pt-2">
+                <p className="text-xs bg-gradient-to-r from-gray-100 to-gray-200 px-3 py-1.5 rounded-full font-mono font-semibold text-gray-700 shadow-sm group-hover:shadow-md transition-all whitespace-nowrap">
+                  {(item.size_bytes / 1024 / 1024).toFixed(1)} MB
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className={`absolute top-4 right-4 flex gap-2 bg-white/95 backdrop-blur-sm rounded-2xl p-2 shadow-2xl border border-gray-200/50 transition-all duration-300 opacity-0 invisible group-hover:opacity-100 group-hover:visible ${showActions ? 'opacity-100 visible' : ''}`}>
+          {!item.is_folder && (
+            <>
+              <button
+                onClick={(e) => handleActionClick(e, 'share')}
+                className="p-2 hover:bg-indigo-100 rounded-xl transition-all hover:scale-110"
+                title="Share"
+              >
+                <Share2 className="h-4 w-4 text-indigo-600" />
+              </button>
+              <button
+                onClick={(e) => window.open(item.storage_key || '#', '_blank')}
+                className="p-2 hover:bg-green-100 rounded-xl transition-all hover:scale-110"
+                title="Download"
+              >
+                <Download className="h-4 w-4 text-green-600" />
+              </button>
+            </>
+          )}
+          <button
+            onClick={(e) => handleActionClick(e, 'more')}
+            className="p-2 hover:bg-gray-100 rounded-xl transition-all hover:scale-110"
+            title="More"
+          >
+            <MoreHorizontal className="h-4 w-4 text-gray-600" />
+          </button>
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div 
-      className="group bg-white/80 backdrop-blur-sm rounded-3xl p-8 hover:shadow-2xl hover:-translate-y-2 hover:border-indigo-300 hover:bg-gradient-to-br hover:from-indigo-50/80 hover:to-purple-50/80 transition-all duration-500 border border-gray-100/50 shadow-lg h-40 flex flex-col justify-between cursor-pointer overflow-hidden relative"
-      onClick={onClick}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-    >
-      <div className="flex items-start space-x-4 h-full">
-        <div className="w-16 h-16 flex-shrink-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 hover:shadow-2xl">
-          {item.is_folder ? (
-            <Folder className="h-8 w-8 text-white drop-shadow-lg" />
-          ) : (
-            getFileIcon(item.mime_type)
-          )}
-        </div>
-        <div className="flex-1 min-w-0 flex flex-col justify-between py-1 flex-grow">
-          <div className="space-y-1">
-            <h3 className="font-bold text-xl leading-tight text-gray-900/95 truncate group-hover:text-indigo-700 transition-all line-clamp-2">
-              {item.name}
-            </h3>
-            <p className="text-sm font-medium text-gray-600 group-hover:text-gray-700 transition-colors">
-              {item.is_folder 
-                ? `${item.children_count || 0} items • Folder` 
-                : `${item.mime_type?.split('/')[1]?.toUpperCase() || 'FILE'}`
-              }
-            </p>
-          </div>
-          {!item.is_folder && (
-            <div className="flex items-center justify-between mt-auto pt-2">
-              <p className="text-xs bg-gradient-to-r from-gray-100 to-gray-200 px-3 py-1.5 rounded-full font-mono font-semibold text-gray-700 shadow-sm group-hover:shadow-md transition-all whitespace-nowrap">
-                {(item.size_bytes / 1024 / 1024).toFixed(1)} MB
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Action Buttons */}
-      <div className={`absolute top-4 right-4 flex gap-2 bg-white/95 backdrop-blur-sm rounded-2xl p-2 shadow-2xl border border-gray-200/50 transition-all duration-300 opacity-0 invisible group-hover:opacity-100 group-hover:visible ${showActions ? 'opacity-100 visible' : ''}`}>
-        {!item.is_folder && (
-          <>
-            <button
-              onClick={(e) => handleActionClick(e, 'share')}
-              className="p-2 hover:bg-indigo-100 rounded-xl transition-all hover:scale-110"
-              title="Share"
-            >
-              <Share2 className="h-4 w-4 text-indigo-600" />
-            </button>
-            <button
-              onClick={(e) => window.open(item.storage_key || '#', '_blank')}
-              className="p-2 hover:bg-green-100 rounded-xl transition-all hover:scale-110"
-              title="Download"
-            >
-              <Download className="h-4 w-4 text-green-600" />
-            </button>
-          </>
-        )}
-        <button
-          onClick={(e) => handleActionClick(e, 'more')}
-          className="p-2 hover:bg-gray-100 rounded-xl transition-all hover:scale-110"
-          title="More"
-        >
-          <MoreHorizontal className="h-4 w-4 text-gray-600" />
-        </button>
-      </div>
-    </div>
-  );
-};
-
-
-  return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* 🚀 ENHANCED HEADER WITH SORTING */}
+      {/* 🚀 ENHANCED HEADER WITH SORTING & NAVIGATION */}
       <header className="bg-white/95 backdrop-blur-2xl shadow-xl border-b border-gray-100/50 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex items-center justify-between">
@@ -311,6 +318,25 @@ const FileItem = ({ item, onClick }) => {
                     <X className="h-4 w-4 text-red-500" />
                   </button>
                 )}
+              </div>
+
+              {/* 🚀 NEW: NAVIGATION TABS (Files | Trash) */}
+              <div className="flex items-center space-x-2 ml-6">
+                {/* Files (Active) */}
+                <button className="flex items-center space-x-2 px-4 py-3 bg-indigo-500/10 text-indigo-700 rounded-2xl font-semibold shadow-md border border-indigo-200/50 backdrop-blur-sm transition-all hover:bg-indigo-500/20">
+                  <Home className="h-5 w-5" />
+                  <span className="hidden sm:inline">Files</span>
+                </button>
+                
+                {/* Trash */}
+                <button 
+                  onClick={() => navigate('/trash')}
+                  className="flex items-center space-x-2 px-4 py-3 text-gray-600 hover:bg-red-50/50 hover:text-red-600 rounded-2xl transition-all hover:shadow-md group relative"
+                  title="Trash"
+                >
+                  <Trash2 className="h-5 w-5 group-hover:-rotate-12 transition-transform" />
+                  <span className="hidden sm:inline">Trash</span>
+                </button>
               </div>
             </div>
 
@@ -447,7 +473,7 @@ const FileItem = ({ item, onClick }) => {
         )}
       </main>
 
-      {/* Modals unchanged */}
+      {/* Modals */}
       {showShareModal && selectedFile && (
         <ShareModal 
           file={selectedFile}
@@ -468,18 +494,5 @@ const FileItem = ({ item, onClick }) => {
     </div>
   );
 };
-
-// ✅ DEBOUNCE UTILITY
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-}
 
 export default FileExplorer;

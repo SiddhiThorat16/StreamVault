@@ -5,6 +5,7 @@ import Login from './components/Auth/Login';
 import Signup from './components/Auth/Signup';
 import Dashboard from './pages/Dashboard';
 import FileExplorer from './pages/FileExplorer';
+import Trash from './pages/Trash';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           <Route path="/signup" element={<Signup />} />
           <Route path="/*" element={<FileExplorer />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/trash" element={<Trash />} />
           <Route path="/" element={<Login />} />
         </Routes>
       </div>
