@@ -2,11 +2,11 @@
 
 const express = require('express');
 const auth = require('../middleware/auth');
-const { createShare, getMyShares, deleteShare } = require('./shareController');
+const { createShare, getMyShares, deleteShare } = require('./shareController'); // ✅ Only existing functions
 const router = express.Router();
 
-router.post('/', auth, createShare);
-router.get('/me', auth, getMyShares);
-router.delete('/:id', auth, deleteShare);
+router.post('/', auth, createShare);     // ✅ User-to-user share
+router.get('/me', auth, getMyShares);    // ✅ List my shares  
+router.delete('/:id', auth, deleteShare); // ✅ Delete share
 
 module.exports = router;

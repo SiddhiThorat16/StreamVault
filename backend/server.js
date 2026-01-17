@@ -33,8 +33,6 @@ app.use('/api/shares', require('./routes/shares'));
 
 app.use('/api/search', auth, require('./routes/search'));
 
-// app.use('/api/file', require('./routes/fileRoutes'));
-
 app.use('/uploads', express.static('uploads'));
 
 

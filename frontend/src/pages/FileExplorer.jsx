@@ -1,17 +1,20 @@
 // C:\Labmentix Projects\Cloud-Based-Media-Files-Storage-Service\StreamVault\frontend\src\pages\FileExplorer.jsx
 
+// frontend/src/pages/FileExplorer.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
   ChevronLeft, ChevronRight, Folder, File, Image, FileText, Video, Upload, Search, 
-  Trash2, MoreHorizontal, LogOut, Home, Loader2 
+  Trash2, MoreHorizontal, LogOut, Home, Loader2, Share2, Download 
 } from 'lucide-react';
 import UploadDropzone from '../components/Upload/UploadDropzone';
+import ShareModal from '../components/Share/ShareModal'; // ✅ NEW IMPORT
 
 const FileExplorer = () => {
-  // ✅ NEW: controls upload modal
   const [showUpload, setShowUpload] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false); // ✅ NEW STATE
+  const [selectedFile, setSelectedFile] = useState(null); // ✅ NEW STATE
 
   const [currentPath, setCurrentPath] = useState([]);
   const [files, setFiles] = useState([]);
@@ -44,6 +47,14 @@ const FileExplorer = () => {
     }
   };
 
+  // ✅ NEW: Open Share Modal
+  const openShareModal = (file) => {
+    setSelectedFile(file);
+    setShowShareModal(true);
+  };
+
+  // ... (keep all existing functions: navigateToFolder, goBack, handleLogout, getFileIcon, Breadcrumbs)
+
   const navigateToFolder = (folder) => {
     setCurrentPath([...currentPath, folder]);
   };
@@ -60,10 +71,8 @@ const FileExplorer = () => {
     navigate('/login');
   };
 
-  // ✅ NEW: current folder id for uploads
   const currentFolderId = currentPath[currentPath.length - 1]?._id || '';
 
-  // ✅ ENHANCED FILE ICONS BY TYPE
   const getFileIcon = (mimeType) => {
     if (!mimeType) return <File className="h-7 w-7 text-white drop-shadow-md" />;
     if (mimeType.startsWith('image/')) return <Image className="h-7 w-7 text-white drop-shadow-md" />;
@@ -97,46 +106,86 @@ const FileExplorer = () => {
     </div>
   );
 
-  // 🚀 ENHANCED FILEITEM - 5X BETTER VISUALS
-  const FileItem = ({ item, onClick }) => (
-    <div 
-      className="group bg-white/80 backdrop-blur-sm rounded-3xl p-8 hover:shadow-2xl hover:-translate-y-2 hover:border-indigo-300 hover:bg-gradient-to-br hover:from-indigo-50/80 hover:to-purple-50/80 transition-all duration-500 border border-gray-100/50 shadow-lg h-40 flex flex-col justify-between cursor-pointer overflow-hidden"
-      onClick={onClick}
-    >
-      <div className="flex items-start space-x-4 h-full">
-        <div className="w-16 h-16 flex-shrink-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 hover:shadow-2xl">
-          {item.is_folder ? (
-            <Folder className="h-8 w-8 text-white drop-shadow-lg" />
-          ) : (
-            getFileIcon(item.mime_type)
-          )}
-        </div>
-        <div className="flex-1 min-w-0 flex flex-col justify-between py-1 flex-grow">
-          <div className="space-y-1">
-            <h3 className="font-bold text-xl leading-tight text-gray-900/95 truncate group-hover:text-indigo-700 transition-all line-clamp-2">
-              {item.name}
-            </h3>
-            <p className="text-sm font-medium text-gray-600 group-hover:text-gray-700 transition-colors">
-              {item.is_folder 
-                ? `${item.children_count || 0} items • Folder` 
-                : `${item.mime_type?.split('/')[1]?.toUpperCase() || 'FILE'}`
-              }
-            </p>
+  // 🚀 ENHANCED FILEITEM WITH SHARE BUTTON
+  const FileItem = ({ item, onClick }) => {
+    const [showActions, setShowActions] = useState(false);
+
+    const handleActionClick = (e, action) => {
+      e.stopPropagation();
+      if (action === 'share') {
+        openShareModal(item);
+      }
+      // Add more actions: download, delete, rename
+    };
+
+    return (
+      <div 
+        className="group bg-white/80 backdrop-blur-sm rounded-3xl p-8 hover:shadow-2xl hover:-translate-y-2 hover:border-indigo-300 hover:bg-gradient-to-br hover:from-indigo-50/80 hover:to-purple-50/80 transition-all duration-500 border border-gray-100/50 shadow-lg h-40 flex flex-col justify-between cursor-pointer overflow-hidden relative"
+        onClick={onClick}
+        onMouseEnter={() => setShowActions(true)}
+        onMouseLeave={() => setShowActions(false)}
+      >
+        <div className="flex items-start space-x-4 h-full">
+          <div className="w-16 h-16 flex-shrink-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 hover:shadow-2xl">
+            {item.is_folder ? (
+              <Folder className="h-8 w-8 text-white drop-shadow-lg" />
+            ) : (
+              getFileIcon(item.mime_type)
+            )}
           </div>
-          {!item.is_folder && (
-            <div className="flex items-center justify-between mt-auto pt-2">
-              <p className="text-xs bg-gradient-to-r from-gray-100 to-gray-200 px-3 py-1.5 rounded-full font-mono font-semibold text-gray-700 shadow-sm group-hover:shadow-md transition-all whitespace-nowrap">
-                {(item.size_bytes / 1024 / 1024).toFixed(1)} MB
+          <div className="flex-1 min-w-0 flex flex-col justify-between py-1 flex-grow">
+            <div className="space-y-1">
+              <h3 className="font-bold text-xl leading-tight text-gray-900/95 truncate group-hover:text-indigo-700 transition-all line-clamp-2">
+                {item.name}
+              </h3>
+              <p className="text-sm font-medium text-gray-600 group-hover:text-gray-700 transition-colors">
+                {item.is_folder 
+                  ? `${item.children_count || 0} items • Folder` 
+                  : `${item.mime_type?.split('/')[1]?.toUpperCase() || 'FILE'}`
+                }
               </p>
-              <div className="p-1.5 bg-white/60 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-md">
-                <MoreHorizontal className="h-4 w-4 text-gray-600 hover:text-indigo-600 cursor-pointer" />
-              </div>
             </div>
+            {!item.is_folder && (
+              <div className="flex items-center justify-between mt-auto pt-2">
+                <p className="text-xs bg-gradient-to-r from-gray-100 to-gray-200 px-3 py-1.5 rounded-full font-mono font-semibold text-gray-700 shadow-sm group-hover:shadow-md transition-all whitespace-nowrap">
+                  {(item.size_bytes / 1024 / 1024).toFixed(1)} MB
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ✅ NEW: Action Buttons Overlay */}
+        <div className={`absolute top-4 right-4 flex gap-2 bg-white/95 backdrop-blur-sm rounded-2xl p-2 shadow-2xl border border-gray-200/50 transition-all duration-300 opacity-0 invisible group-hover:opacity-100 group-hover:visible ${showActions ? 'opacity-100 visible' : ''}`}>
+          {!item.is_folder && (
+            <>
+              <button
+                onClick={(e) => handleActionClick(e, 'share')}
+                className="p-2 hover:bg-indigo-100 rounded-xl transition-all hover:scale-110 group/action"
+                title="Share"
+              >
+                <Share2 className="h-4 w-4 text-indigo-600" />
+              </button>
+              <button
+                onClick={(e) => window.open(item.storage_key || '#', '_blank')}
+                className="p-2 hover:bg-green-100 rounded-xl transition-all hover:scale-110"
+                title="Download"
+              >
+                <Download className="h-4 w-4 text-green-600" />
+              </button>
+            </>
           )}
+          <button
+            onClick={(e) => handleActionClick(e, 'more')}
+            className="p-2 hover:bg-gray-100 rounded-xl transition-all hover:scale-110"
+            title="More"
+          >
+            <MoreHorizontal className="h-4 w-4 text-gray-600" />
+          </button>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const filteredItems = folders.concat(files).filter(item => 
     item.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -144,7 +193,7 @@ const FileExplorer = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      {/* 🚀 ENHANCED HEADER */}
+      {/* Header (unchanged) */}
       <header className="bg-white/95 backdrop-blur-2xl shadow-xl border-b border-gray-100/50 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex items-center justify-between">
@@ -169,7 +218,6 @@ const FileExplorer = () => {
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              {/* ✅ Upload button now opens dropzone */}
               <button 
                 onClick={() => setShowUpload(true)}
                 className="group flex items-center space-x-2.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white px-8 py-4 rounded-3xl font-semibold shadow-xl hover:shadow-2xl hover:scale-105 hover:from-emerald-600 hover:to-emerald-700 transition-all duration-300 text-lg"
@@ -186,12 +234,10 @@ const FileExplorer = () => {
             </div>
           </div>
         </div>
-        
-        {/* Breadcrumbs */}
         <Breadcrumbs />
       </header>
 
-      {/* Main Content */}
+      {/* Main Content (FileItem updated above) */}
       <main className="max-w-7xl mx-auto px-8 py-12">
         {loading ? (
           <div className="flex items-center justify-center py-32">
@@ -201,6 +247,7 @@ const FileExplorer = () => {
             </div>
           </div>
         ) : filteredItems.length === 0 ? (
+          // Empty state (unchanged)
           <div className="text-center py-32">
             <div className="w-32 h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl">
               <Folder className="h-16 w-16 text-gray-400" />
@@ -238,7 +285,19 @@ const FileExplorer = () => {
         )}
       </main>
 
-      {/* ✅ Upload modal hooked here */}
+      {/* ✅ SHARE MODAL INTEGRATION */}
+      {showShareModal && selectedFile && (
+        <ShareModal 
+          file={selectedFile}
+          onClose={() => {
+            setShowShareModal(false);
+            setSelectedFile(null);
+            fetchCurrentFolder(); // Refresh files after sharing
+          }}
+        />
+      )}
+
+      {/* Upload modal (unchanged) */}
       {showUpload && (
         <UploadDropzone
           folderId={currentFolderId}
